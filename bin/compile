@@ -72,7 +72,13 @@ Dir.mktmpdir 'ssh_buidpack' do |dir|
   # `ssh-keygen -e -P '' -f #{key_file_path} < /dev/null > #{dir}/host_hash.pub.rfc 2>/dev/null`
   # `ssh-keygen -i -P '' -f #{dir}/host_hash.pub.rfc > #{dir}/host_hash.pub 2>/dev/null`
 
-  fingerprint = `ssh-keygen -l -f #{dir}/ssh_buildpack_key.pub | awk '{print $2}'`
+  ssh_version = `ssh -V 2>&1`.match(/OpenSSH_([^ ]*)/)[1]
+  # this works for stuff like 7.8p1 etc but it's a sketchy comparison...
+  fingerprint = if ssh_version > "6.8"
+    `ssh-keygen -l -E md5 -f #{dir}/ssh_buildpack_key.pub | awk '{print $2}'`
+  else
+    `ssh-keygen -l -f #{dir}/ssh_buildpack_key.pub | awk '{print $2}'`
+  end
 
   # only used to be sure the passed key was valid
   temp_key = `echo "#{fingerprint}" | tr -ds ':' '' | egrep -ie "[a-f0-9]{32}" 2>/dev/null`
